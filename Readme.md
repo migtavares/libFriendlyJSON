@@ -2,11 +2,13 @@
 
 This is a library to make it easy to serialize specific Java objects to and from JSON.
 
-The library is developed as a support for BitPipeline's projects so it will not try to be generic, extensible or mantain back compatibility.
+The library is developed as a support for [BitPipeline](http://www.bitpipeline.eu/)'s projects so it will not try to be generic, extensible or maintain back compatibility.
 
 # Usage
 
-Simply use the provided jar as a library in your project.
+Simply use the provided jar as a library in your project. Look at
+org.bitpipeline.lib.friendlyjson.JSONEntityTests$Entity for an example of how
+to use the library (actually... it's just one class).
 
 # License
 
