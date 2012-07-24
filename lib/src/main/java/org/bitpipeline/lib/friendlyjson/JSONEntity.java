@@ -1,3 +1,18 @@
+/**
+ * Copyright 2012 J. Miguel P. Tavares
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ ***************************************************************************/
 package org.bitpipeline.lib.friendlyjson;
 
 import java.lang.reflect.Field;
@@ -15,23 +30,23 @@ import org.json.JSONObject;
 
 /** The base of all JSON entities.
  * Classes that extend this abstract class can be easily serialized into JSON... well, with some very "strict" rules.
- * 
+ *
  * Classes that extend this class can have fields defined as:
  * <ul>
  *    <li>java primitives (boolean, byte, char, short, int, long, float and double)</li>
  *    <li>java.util.Map&lt;String, ?&gt;</li>
  *    <li>java.util.List&lt;?&gt;</li>
  * </ul>
- * 
+ *
  * To convert the the instances to JSON objects just call the method
  * <tt>toJSON ()</tt>. To create a instance of the object from JSON use the
  * constructor with <tt>JSONObject</tt> parameter. */
 public abstract class JSONEntity {
 	public JSONEntity () {
 	}
-	
-	/** Des-serialize a JSON object. 
-	 * @throws JSONException 
+
+	/** Des-serialize a JSON object.
+	 * @throws JSONException
 	 * @throws JSONMappingException */
 	public JSONEntity (JSONObject json) throws JSONMappingException {
 		if (json == null)
@@ -40,17 +55,17 @@ public abstract class JSONEntity {
 			if ( (field.getModifiers () & Modifier.TRANSIENT) != 0) { // don't care about transient fields.
 				continue;
 			}
-			
+
 			String jsonName = field.getName ();
 			if (jsonName.equals ("this$0"))
 				continue;
-			
+
 			boolean accessible = field.isAccessible ();
 			if (!accessible)
 				field.setAccessible (true);
 
 			Class<?> type = field.getType ();
-			
+
 			try {
 				FieldSetter setter = SETTERS.get (type.getName ());
 				if (setter != null)
@@ -64,7 +79,7 @@ public abstract class JSONEntity {
 			} catch (JSONException e) {
 				throw new JSONMappingException (e);
 			}
-			
+
 			if (!accessible)
 				field.setAccessible (false);
 		}
@@ -73,14 +88,14 @@ public abstract class JSONEntity {
 	private static interface FieldSetter {
 		void setField (Object obj, Field field, JSONObject json, String jsonName) throws JSONException, IllegalArgumentException, IllegalAccessException;
 	}
-	
+
 	private static interface JSON2Obj {
 		Object convert (Object json) throws JSONException;
 	}
-	
+
 	final private static HashMap<String, FieldSetter> SETTERS = new HashMap<String, FieldSetter> ();
 	final private static HashMap<String, JSON2Obj> CONVERTERS = new HashMap<String, JSON2Obj> ();
-	
+
 	static {
 		SETTERS.put ("boolean", new FieldSetter () {
 			public void setField (Object obj, Field field, JSONObject json, String jsonName) throws JSONException, IllegalArgumentException, IllegalAccessException {
@@ -126,7 +141,7 @@ public abstract class JSONEntity {
 				field.setDouble (obj, json.getDouble (jsonName));
 			}
 		});
-		
+
 		SETTERS.put (String.class.getName (), new FieldSetter () {
 			public void setField (Object obj, Field field, JSONObject json, String jsonName) throws JSONException, IllegalArgumentException, IllegalAccessException {
 				field.set (obj, json.getString (jsonName));
@@ -148,8 +163,8 @@ public abstract class JSONEntity {
 				field.set (obj, map);
 			}
 		});
-		
-		
+
+
 		CONVERTERS.put (JSONObject.class.getName (), new JSON2Obj () {
 			public Object convert (Object json) throws JSONException {
 				JSONObject jsonMap = (JSONObject) json;
@@ -161,25 +176,25 @@ public abstract class JSONEntity {
 					map.put (key, JSONEntity.fromJson (jsonValue));
 				}
 				return map;
-			}			
+			}
 		});
-		
+
 		CONVERTERS.put (JSONArray.class.getName (), new JSON2Obj () {
 			public Object convert (Object json) throws JSONException {
 				JSONArray jsonArray = (JSONArray) json;
 				Object[] array = new Object[jsonArray.length ()];
-				
+
 				for (int i=0; i<jsonArray.length (); i++) {
 					Object jsonValue = jsonArray.get (i);
 					array[i] = JSONEntity.fromJson (jsonValue);
 				}
 				return Arrays.asList (array);
-			}			
+			}
 		});
-	}	
-	
-	
-	
+	}
+
+
+
 	private static Object fromJson (Object json) throws JSONException {
 		if (json == null)
 			return null;
@@ -189,9 +204,9 @@ public abstract class JSONEntity {
 		}
 		return json;
 	}
-	
+
 	/* ---------------------- */
-	
+
 	/** */
 	static private Object toJson (Object obj) throws JSONException {
 		Object json = obj;
@@ -201,7 +216,7 @@ public abstract class JSONEntity {
 				Object jsonValue = toJson (((Map<?, ?>)obj).get (mapKey));
 				((JSONObject)json).accumulate (mapKey.toString (), jsonValue);
 			}
-			
+
 		} else if (obj instanceof List) {
 			json = new JSONArray ();
 			for (Object listItem : ((List<?>)obj)) {
@@ -211,26 +226,26 @@ public abstract class JSONEntity {
 		}
 		return json;
 	}
-	
-	/** Serialize the object into a JSON object. 
+
+	/** Serialize the object into a JSON object.
 	 * @throws JSONMappingException */
 	public JSONObject toJson () throws JSONMappingException {
 		JSONObject json = new JSONObject ();
 		for (Field field : this.getClass ().getDeclaredFields ()) {
-			
+
 			if ( (field.getModifiers () & Modifier.TRANSIENT) != 0) { // don't care about transient fields.
 				continue;
 			}
-			
+
 			String jsonName = field.getName ();
 			if (jsonName.equals ("this$0"))
 				continue;
-			
+
 			boolean accessible = field.isAccessible ();
-			
+
 			if (!accessible)
 				field.setAccessible (true);
-			
+
 			try {
 				Object jsonField = toJson (field.get (this));
 				json.accumulate (jsonName, jsonField);
@@ -239,11 +254,11 @@ public abstract class JSONEntity {
 			} catch (JSONException e) {
 				throw new JSONMappingException (e);
 			}
-			
+
 			if (!accessible)
 				field.setAccessible (false);
 		}
-		
+
 		return json;
 	}
 }
