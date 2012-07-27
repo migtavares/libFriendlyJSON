@@ -15,14 +15,12 @@
  ***************************************************************************/
 package org.bitpipeline.lib.friendlyjson;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import junit.framework.TestCase;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -32,7 +30,7 @@ import org.junit.Test;
  * @author mtavares
  *
  */
-public class JSONEntityTests {
+public class JSONEntityTest extends TestCase {
 
 	class Entity extends JSONEntity {
 		boolean aBoolean;
@@ -92,8 +90,11 @@ public class JSONEntityTests {
 		Entity orig = createEntity ();
 
 		JSONObject json = orig.toJson ();
+		System.out.println ("ORIG:\n" + orig.toJson ().toString (4));
 		assertNotNull (json);
 		Entity copy = new Entity (json);
+		System.out.println ("COPY:\n" + copy.toJson ().toString (4));
+
 		assertNotNull (copy);
 		assertEquals (orig.aBoolean, copy.aBoolean);
 		assertEquals (orig.aByte, copy.aByte);
@@ -116,8 +117,5 @@ public class JSONEntityTests {
 		for (String key : orig.aMapOfLists.keySet ()) {
 			assertEquals (orig.aMapOfLists.get (key), copy.aMapOfLists.get (key));
 		}
-
-		System.out.println ("ORIG:\n" + orig.toJson ().toString (4));
-		System.out.println ("COPY:\n" + copy.toJson ().toString (4));
 	}
 }

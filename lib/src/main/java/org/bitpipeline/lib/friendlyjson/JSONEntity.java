@@ -214,7 +214,7 @@ public abstract class JSONEntity {
 			json = new JSONObject ();
 			for (Object mapKey : ((Map<?, ?>)obj).keySet ()) {
 				Object jsonValue = toJson (((Map<?, ?>)obj).get (mapKey));
-				((JSONObject)json).accumulate (mapKey.toString (), jsonValue);
+				((JSONObject)json).put (mapKey.toString (), jsonValue);
 			}
 
 		} else if (obj instanceof List) {
