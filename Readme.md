@@ -13,6 +13,7 @@ You can then extend any class you want to serialise to and from JSON by making i
 ## Example
 
 Given the class:
+
 	class Entity extends JSONEntity {
 		boolean aBoolean;
 		byte aByte;
