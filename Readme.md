@@ -44,13 +44,18 @@ Given the class:
 	}
 
 You can now de-serialize into this object by doing:
+
 	String jsonString = /* read the JSON string from somewhere */
 	Entity entity = new Entity (jsonString);
 
 And you can serialize it with:
+
 	String serialization = entity.toString ();
+
 or, if you want a pretty print:
+
 	String prettySerialization = entity.toString (4);
+
 where the integer parameter to the method `toString` is the number of spaces to
 use for indentation.
 
