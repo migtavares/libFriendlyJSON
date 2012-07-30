@@ -27,9 +27,7 @@ import org.json.JSONObject;
 import org.junit.Test;
 
 /**
- * @author mtavares
- *
- */
+ * @author mtavares */
 public class JSONEntityTest extends TestCase {
 
 	class Entity extends JSONEntity {
@@ -54,6 +52,10 @@ public class JSONEntityTest extends TestCase {
 
 		public Entity (JSONObject json) throws JSONMappingException {
 			super (json);
+		}
+		
+		public Entity (String source) throws JSONMappingException, JSONException {
+			super (source);
 		}
 
 	}
@@ -86,7 +88,7 @@ public class JSONEntityTest extends TestCase {
 	}
 
 	@Test
-	public void testBoardSerialization () throws JSONMappingException, JSONException  {
+	public void testJSonSerialization () throws JSONMappingException, JSONException  {
 		Entity orig = createEntity ();
 
 		JSONObject json = orig.toJson ();
@@ -118,4 +120,39 @@ public class JSONEntityTest extends TestCase {
 			assertEquals (orig.aMapOfLists.get (key), copy.aMapOfLists.get (key));
 		}
 	}
+	
+	@Test
+	public void testSerializationStrings () throws JSONMappingException, JSONException  {
+		Entity orig = createEntity ();
+
+		JSONObject json = orig.toJson ();
+		assertNotNull (json);
+		String origJsonStr = orig.toString (4);
+		assertNotNull (origJsonStr);
+		Entity copy = new Entity (origJsonStr);
+
+		assertNotNull (copy);
+		assertEquals (orig.aBoolean, copy.aBoolean);
+		assertEquals (orig.aByte, copy.aByte);
+		assertEquals (orig.aChar, copy.aChar);
+		assertEquals (orig.aShort, copy.aShort);
+		assertEquals (orig.aInt, copy.aInt);
+		assertEquals (orig.aLong, copy.aLong);
+		assertEquals (orig.aFloat, copy.aFloat, Float.MIN_VALUE * 10.0f);
+		assertEquals (orig.aDouble, copy.aDouble, Double.MIN_VALUE * 10.0);
+		assertEquals (orig.aString, copy.aString);
+
+		assertFalse (orig.transientValue == copy.transientValue);
+
+		assertNotNull (copy.aMap);
+		for (String key : orig.aMap.keySet ()) {
+			assertEquals (orig.aMap.get (key), copy.aMap.get (key));
+		}
+
+		assertNotNull (copy.aMapOfLists);
+		for (String key : orig.aMapOfLists.keySet ()) {
+			assertEquals (orig.aMapOfLists.get (key), copy.aMapOfLists.get (key));
+		}
+	}
+
 }

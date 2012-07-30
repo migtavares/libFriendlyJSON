@@ -38,13 +38,17 @@ import org.json.JSONObject;
  *    <li>java.util.List&lt;?&gt;</li>
  * </ul>
  *
- * To convert the the instances to JSON objects just call the method
+ * To convert the instances to JSON objects just call the method
  * <tt>toJSON ()</tt>. To create a instance of the object from JSON use the
- * constructor with <tt>JSONObject</tt> parameter. */
+ * constructor with <tt>JSONObject</tt> as parameter. */
 public abstract class JSONEntity {
 	public JSONEntity () {
 	}
 
+	public JSONEntity (String jsonString) throws JSONMappingException, JSONException {
+		this (new JSONObject (jsonString));
+	}
+	
 	/** Des-serialize a JSON object.
 	 * @throws JSONException
 	 * @throws JSONMappingException */
@@ -56,8 +60,8 @@ public abstract class JSONEntity {
 				continue;
 			}
 
-			String jsonName = field.getName ();
-			if (jsonName.equals ("this$0"))
+			String fieldName = field.getName ();
+			if (fieldName.equals ("this$0"))
 				continue;
 
 			boolean accessible = field.isAccessible ();
@@ -69,9 +73,9 @@ public abstract class JSONEntity {
 			try {
 				FieldSetter setter = SETTERS.get (type.getName ());
 				if (setter != null)
-					setter.setField (this, field, json, jsonName);
+					setter.setField (this, field, json, fieldName);
 				else
-					System.out.println ("No setter for " + field);
+					System.err.println ("No setter for " + field);
 			} catch (IllegalArgumentException e) {
 				throw new JSONMappingException (e);
 			} catch (IllegalAccessException e) {
@@ -260,5 +264,26 @@ public abstract class JSONEntity {
 		}
 
 		return json;
+	}
+	
+	/** 
+	 * @return <tt>null</tt> if there was a problem converting the object into a JSON representation,
+	 *         a String representing the object with a JSON syntax otherwise. */
+	public String toString () {
+		try {
+			return toJson().toString ();
+		} catch (JSONMappingException e) {
+			return null;
+		}
+	}
+	
+	public String toString (int indent) {
+		try {
+			return toJson().toString (indent);
+		} catch (JSONMappingException e) {
+			return e.toString ();
+		} catch (JSONException e) {
+			return e.toString ();
+		}		
 	}
 }
