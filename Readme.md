@@ -6,9 +6,62 @@ The library is developed as a support for [BitPipeline](http://www.bitpipeline.e
 
 # Usage
 
-Simply use the provided jar as a library in your project. Look at
-org.bitpipeline.lib.friendlyjson.JSONEntityTests$Entity for an example of how
-to use the library (actually... it's just one class).
+Simply use the provided jar as a library in your project.
+
+You can then extend any class you want to serialise to and from JSON by making it extend the JSONEntity class.
+
+## Example
+
+Given the class:
+	class Entity extends JSONEntity {
+		boolean aBoolean;
+		byte aByte;
+		char aChar;
+		short aShort;
+		int aInt;
+		long aLong;
+		float aFloat;
+		double aDouble;
+
+		String aString;
+		Map<String, String> aMap;
+		Map<String, List<String>> aMapOfLists;
+
+		transient int transientValue;
+
+		public Entity () {
+			super ();
+		}
+
+		public Entity (JSONObject json) throws JSONMappingException {
+			super (json);
+		}
+
+		public Entity (String source) throws JSONMappingException, JSONException {
+			super (source);
+		}
+
+	}
+
+You can now de-serialize into this object by doing:
+	String jsonString = /* read the JSON string from somewhere */
+	Entity entity = new Entity (jsonString);
+
+And you can serialize it with:
+	String serialization = entity.toString ();
+or, if you want a pretty print:
+	String prettySerialization = entity.toString (4);
+where the integer parameter to the method `toString` is the number of spaces to
+use for indentation.
+
+## Rules
+
+### Transient fields
+Fields marked as transient are not (des)serialized. In the example `Entity` class the field  `transientValue` will not be kept.
+
+### Maps
+For now all maps must have `String` as the key type.
+
 
 # License
 
