@@ -15,6 +15,7 @@
  ***************************************************************************/
 package org.bitpipeline.lib.friendlyjson;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -30,6 +31,21 @@ import org.junit.Test;
  * @author mtavares */
 public class JSONEntityTest extends TestCase {
 
+	class Xpto extends JSONEntity {
+		String name;
+
+		public Xpto (JSONObject json) throws JSONMappingException {
+			super (json);
+		}
+
+		public Xpto (String name) {
+			this.name = name;
+		}
+		public String getName () {
+			return this.name;
+		}
+	}
+	
 	class Entity extends JSONEntity {
 		boolean aBoolean;
 		byte aByte;
@@ -43,9 +59,16 @@ public class JSONEntityTest extends TestCase {
 		String aString;
 		Map<String, String> aMap;
 		Map<String, List<String>> aMapOfLists;
+		
+		List<String> names;
+		List<Xpto> xptos;
 
 		transient int transientValue;
 
+		protected FieldSetter getFieldReader (String fieldName) {
+			return null;
+		}
+		
 		public Entity () {
 			super ();
 		}
@@ -84,6 +107,15 @@ public class JSONEntityTest extends TestCase {
 		e.aMapOfLists.put ("listA", Arrays.asList (new String[]{"val1a", "val2a", "val3a"}));
 		e.aMapOfLists.put ("listB", Arrays.asList (new String[]{"val1b", "val2b", "val3b"}));
 
+		e.names = new ArrayList<String> (2);
+		e.names.add ("Miguel");
+		e.names.add ("Tavares");
+		
+		e.xptos = new ArrayList<Xpto> (3);
+		e.xptos.add (new Xpto ("Uno"));
+		e.xptos.add (new Xpto ("Doi"));
+		e.xptos.add (new Xpto ("Tre"));
+		
 		return e;
 	}
 
@@ -92,10 +124,8 @@ public class JSONEntityTest extends TestCase {
 		Entity orig = createEntity ();
 
 		JSONObject json = orig.toJson ();
-		System.out.println ("ORIG:\n" + orig.toJson ().toString (4));
 		assertNotNull (json);
 		Entity copy = new Entity (json);
-		System.out.println ("COPY:\n" + copy.toJson ().toString (4));
 
 		assertNotNull (copy);
 		assertEquals (orig.aBoolean, copy.aBoolean);
@@ -119,6 +149,18 @@ public class JSONEntityTest extends TestCase {
 		for (String key : orig.aMapOfLists.keySet ()) {
 			assertEquals (orig.aMapOfLists.get (key), copy.aMapOfLists.get (key));
 		}
+
+		assertNotNull (copy.xptos);
+		assertEquals (copy.xptos.size (), orig.xptos.size ());
+		for (Xpto x : orig.xptos) {
+			boolean found = false;
+			for (Xpto y : copy.xptos)
+				if (x.getName ().equals (y.getName ()))
+					found = true;
+			assertTrue (found);
+		}
+
+		assertEquals (orig.toString (), copy.toString ());
 	}
 	
 	@Test
@@ -153,6 +195,18 @@ public class JSONEntityTest extends TestCase {
 		for (String key : orig.aMapOfLists.keySet ()) {
 			assertEquals (orig.aMapOfLists.get (key), copy.aMapOfLists.get (key));
 		}
+
+		assertNotNull (copy.xptos);
+		assertEquals (copy.xptos.size (), orig.xptos.size ());
+		for (Xpto x : orig.xptos) {
+			boolean found = false;
+			for (Xpto y : copy.xptos)
+				if (x.getName ().equals (y.getName ()))
+					found = true;
+			assertTrue (found);
+		}
+
+		assertEquals (orig.toString (), copy.toString ());
 	}
 
 }

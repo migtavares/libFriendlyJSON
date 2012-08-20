@@ -15,8 +15,11 @@
  ***************************************************************************/
 package org.bitpipeline.lib.friendlyjson;
 
+import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
+import java.lang.reflect.ParameterizedType;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -71,11 +74,12 @@ public abstract class JSONEntity {
 			Class<?> type = field.getType ();
 
 			try {
-				FieldSetter setter = SETTERS.get (type.getName ());
+				FieldSetter setter = JSON_READERS.get (type.getName ());
 				if (setter != null)
 					setter.setField (this, field, json, fieldName);
-				else
+				else {
 					System.err.println ("No setter for " + field);
+				}
 			} catch (IllegalArgumentException e) {
 				throw new JSONMappingException (e);
 			} catch (IllegalAccessException e) {
@@ -89,7 +93,7 @@ public abstract class JSONEntity {
 		}
 	}
 
-	private static interface FieldSetter {
+	static interface FieldSetter {
 		void setField (Object obj, Field field, JSONObject json, String jsonName) throws JSONException, IllegalArgumentException, IllegalAccessException;
 	}
 
@@ -97,21 +101,23 @@ public abstract class JSONEntity {
 		Object convert (Object json) throws JSONException;
 	}
 
-	final private static HashMap<String, FieldSetter> SETTERS = new HashMap<String, FieldSetter> ();
-	final private static HashMap<String, JSON2Obj> CONVERTERS = new HashMap<String, JSON2Obj> ();
+	/** Read from the JSON into Java objects */
+	final protected static HashMap<String, FieldSetter> JSON_READERS = new HashMap<String, FieldSetter> ();
+	/** Convert from JSON complex objects into Java Objects. */
+	final protected static HashMap<String, JSON2Obj> JSON_CONVERTERS = new HashMap<String, JSON2Obj> ();
 
 	static {
-		SETTERS.put ("boolean", new FieldSetter () {
+		JSON_READERS.put ("boolean", new FieldSetter () {
 			public void setField (Object obj, Field field, JSONObject json, String jsonName) throws JSONException, IllegalArgumentException, IllegalAccessException {
 				field.setBoolean (obj, json.getBoolean (jsonName));
 			}
 		});
-		SETTERS.put ("byte", new FieldSetter () {
+		JSON_READERS.put ("byte", new FieldSetter () {
 			public void setField (Object obj, Field field, JSONObject json, String jsonName) throws JSONException, IllegalArgumentException, IllegalAccessException {
 				field.setByte (obj, (byte) json.getInt (jsonName));
 			}
 		});
-		SETTERS.put ("char", new FieldSetter () {
+		JSON_READERS.put ("char", new FieldSetter () {
 			public void setField (Object obj, Field field, JSONObject json, String jsonName) throws JSONException, IllegalArgumentException, IllegalAccessException {
 				String string = json.getString (jsonName);
 				if (string == null || string.length () == 0)
@@ -120,43 +126,60 @@ public abstract class JSONEntity {
 				field.setChar (obj, charAt);
 			}
 		});
-		SETTERS.put ("short", new FieldSetter () {
+		JSON_READERS.put ("short", new FieldSetter () {
 			public void setField (Object obj, Field field, JSONObject json, String jsonName) throws JSONException, IllegalArgumentException, IllegalAccessException {
 				field.setShort (obj, (short) json.getInt (jsonName));
 			}
 		});
-		SETTERS.put ("int", new FieldSetter () {
+		JSON_READERS.put ("int", new FieldSetter () {
 			public void setField (Object obj, Field field, JSONObject json, String jsonName) throws JSONException, IllegalArgumentException, IllegalAccessException {
 				field.setInt (obj, json.getInt (jsonName));
 			}
 		});
-		SETTERS.put ("long", new FieldSetter () {
+		JSON_READERS.put ("long", new FieldSetter () {
 			public void setField (Object obj, Field field, JSONObject json, String jsonName) throws JSONException, IllegalArgumentException, IllegalAccessException {
 				field.setLong (obj, json.getLong (jsonName));
 			}
 		});
-		SETTERS.put ("float", new FieldSetter () {
+		JSON_READERS.put ("float", new FieldSetter () {
 			public void setField (Object obj, Field field, JSONObject json, String jsonName) throws JSONException, IllegalArgumentException, IllegalAccessException {
 				field.setFloat (obj, (float) json.getDouble (jsonName));
 			}
 		});
-		SETTERS.put ("double", new FieldSetter () {
+		JSON_READERS.put ("double", new FieldSetter () {
 			public void setField (Object obj, Field field, JSONObject json, String jsonName) throws JSONException, IllegalArgumentException, IllegalAccessException {
 				field.setDouble (obj, json.getDouble (jsonName));
 			}
 		});
 
-		SETTERS.put (String.class.getName (), new FieldSetter () {
+		JSON_READERS.put (String.class.getName (), new FieldSetter () {
 			public void setField (Object obj, Field field, JSONObject json, String jsonName) throws JSONException, IllegalArgumentException, IllegalAccessException {
 				field.set (obj, json.getString (jsonName));
 			}
 		});
 
-		SETTERS.put (Map.class.getName (), new FieldSetter () {
+		JSON_READERS.put (List.class.getName (), new FieldSetter () {
+			public void setField (Object obj, Field field, JSONObject json, String jsonName) throws JSONException, IllegalArgumentException, IllegalAccessException {
+				JSONArray jsonArray = json.getJSONArray (jsonName);
+				
+				ParameterizedType genericType = (ParameterizedType) field.getGenericType ();
+				Class<?> listClass = (Class<?>)genericType.getActualTypeArguments ()[0];
+				
+				ArrayList<Object> list = new ArrayList<Object> (jsonArray.length ());
+				for (int i=0; i<jsonArray.length (); i++) {
+					Object entry = jsonArray.get (i);
+					list.add (JSONEntity.fromJson (listClass, entry));
+				}
+				field.set (obj, list);
+			}
+		});
+
+		JSON_READERS.put (Map.class.getName (), new FieldSetter () {
 			public void setField (Object obj, Field field, JSONObject json, String jsonName) throws JSONException, IllegalArgumentException, IllegalAccessException {
 				JSONObject jsonMap = json.getJSONObject (jsonName);
 				if (jsonMap == null)
 					return;
+
 				HashMap<Object, Object> map = new HashMap <Object, Object> (jsonMap.length ());
 				Iterator<?> keys = jsonMap.keys ();
 				while (keys.hasNext ()) {
@@ -169,7 +192,20 @@ public abstract class JSONEntity {
 		});
 
 
-		CONVERTERS.put (JSONObject.class.getName (), new JSON2Obj () {
+		JSON_CONVERTERS.put (List.class.getName (), new JSON2Obj () {
+			public Object convert (Object json) throws JSONException {
+				JSONArray jsonArray = (JSONArray) json;
+				Object[] array = new Object[jsonArray.length ()];
+
+				for (int i=0; i<jsonArray.length (); i++) {
+					Object jsonValue = jsonArray.get (i);
+					array[i] = JSONEntity.fromJson (jsonValue);
+				}
+				return Arrays.asList (array);
+			}
+		});
+
+		JSON_CONVERTERS.put (JSONObject.class.getName (), new JSON2Obj () {
 			public Object convert (Object json) throws JSONException {
 				JSONObject jsonMap = (JSONObject) json;
 				Map<Object, Object> map = new HashMap <Object, Object> (jsonMap.length ());
@@ -183,7 +219,7 @@ public abstract class JSONEntity {
 			}
 		});
 
-		CONVERTERS.put (JSONArray.class.getName (), new JSON2Obj () {
+		JSON_CONVERTERS.put (JSONArray.class.getName (), new JSON2Obj () {
 			public Object convert (Object json) throws JSONException {
 				JSONArray jsonArray = (JSONArray) json;
 				Object[] array = new Object[jsonArray.length ()];
@@ -197,16 +233,35 @@ public abstract class JSONEntity {
 		});
 	}
 
-
-
 	private static Object fromJson (Object json) throws JSONException {
 		if (json == null)
 			return null;
-		JSON2Obj json2Obj = JSONEntity.CONVERTERS.get (json.getClass ().getName ());
+		JSON2Obj json2Obj = JSONEntity.JSON_CONVERTERS.get (json.getClass ().getName ());
 		if (json2Obj != null) {
 			return json2Obj.convert (json);
 		}
 		return json;
+	}
+
+	private static Object fromJson (Class<?> clazz, Object json) throws JSONException {
+		if (json == null)
+			return null;
+		if (clazz != null && JSONEntity.class.isAssignableFrom (clazz)) {
+			try {
+				Constructor<?> constructor;
+				Class<?> enclosingClass = clazz.getEnclosingClass ();
+				if (enclosingClass != null) {
+					constructor = clazz.getDeclaredConstructor (enclosingClass, JSONObject.class);
+					return constructor.newInstance (null, json); // NULL?? What should we actually use here?
+				} else {
+					constructor = clazz.getDeclaredConstructor (JSONObject.class);
+					return constructor.newInstance (json);
+				}
+			} catch (Exception e) {
+				throw new JSONException (e);
+			}
+		}
+		return JSONEntity.fromJson (json);
 	}
 
 	/* ---------------------- */
@@ -214,7 +269,13 @@ public abstract class JSONEntity {
 	/** */
 	static private Object toJson (Object obj) throws JSONException {
 		Object json = obj;
-		if (obj instanceof Map) {
+		if (obj instanceof JSONEntity) {
+			try {
+				json = ((JSONEntity)obj).toJson ();
+			} catch (JSONMappingException e) {
+				throw new JSONException (e);
+			}
+		} else if (obj instanceof Map) {
 			json = new JSONObject ();
 			for (Object mapKey : ((Map<?, ?>)obj).keySet ()) {
 				Object jsonValue = toJson (((Map<?, ?>)obj).get (mapKey));
@@ -252,7 +313,7 @@ public abstract class JSONEntity {
 
 			try {
 				Object jsonField = toJson (field.get (this));
-				json.accumulate (jsonName, jsonField);
+				json.put (jsonName, jsonField);
 			} catch (IllegalAccessException e) {
 				throw new JSONMappingException (e);
 			} catch (JSONException e) {
