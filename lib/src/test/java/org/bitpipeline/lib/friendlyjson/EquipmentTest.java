@@ -29,7 +29,7 @@ public class EquipmentTest {
 				new EquipmentBoard.BoardSpecs (240f, 2.90f, 0.85f, 2.0f, 10.0f, FinFittingType.DaggerBoard, FinFittingType.PowerBox),
 				new EquipmentBoard.BoardSpecs (250f, 2.90f, 0.90f, 2.0f, 10.0f, FinFittingType.DaggerBoard, FinFittingType.PowerBox));
 
-//		brand.putInfo ("Founded", "2012");
+		brand.putInfo ("Founded", "2012");
 //		System.out.println ("board : " + board.toString (4));
 		
 		JSONObject json = board.toJson ();

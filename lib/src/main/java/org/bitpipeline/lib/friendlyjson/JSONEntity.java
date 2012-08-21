@@ -63,7 +63,14 @@ public abstract class JSONEntity {
 	public JSONEntity (JSONObject json) throws JSONMappingException {
 		if (json == null)
 			return;
-		for (Field field : this.getClass ().getDeclaredFields ()) {
+		Class<?> clazz = this.getClass ();
+		List<Field> declaredFields = new ArrayList<Field> ();
+		do {
+			Field[] fields = clazz.getDeclaredFields ();
+			declaredFields.addAll (Arrays.asList (fields));
+			clazz = clazz.getSuperclass ();
+		} while (clazz != null && !clazz.isAssignableFrom (JSONEntity.class));
+		for (Field field : declaredFields) {
 			if ( (field.getModifiers () & Modifier.TRANSIENT) != 0) { // don't care about transient fields.
 				continue;
 			}

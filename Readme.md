@@ -66,6 +66,9 @@ use for indentation.
 ### Must have constructor
 The classes that extend the `JSONEntity` must have a constructor with a single `JSONObject` type argument. Without this constructor it will be possible to serialize to a JSONObject but not _from_ a JSONObject.
 
+### Initialization of fields
+`JSONEntity` based classes _must_ not initialize their fields in their declaration. As far as I can see the subclass initialization takes place after the call to the `super` constructor and overides the values set by it.
+
 ### Transient fields
 Fields marked as transient are not (des)serialized. In the example `Entity` class the field  `transientValue` will not be kept.
 

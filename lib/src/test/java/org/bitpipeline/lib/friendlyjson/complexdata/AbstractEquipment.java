@@ -19,7 +19,7 @@ public abstract class AbstractEquipment extends JSONEntity implements ViewableOb
 	private transient static final String FIELD_DESCRIPTION = "description";
 	private transient static final String FIELD_IMAGEURL = "imageURL";
 	
-	private final Map<String, String> info = new HashMap<String, String> ();
+	private Map<String, String> info;
 
 	transient private ViewableObjectInterface viewableImpl;
 
@@ -45,14 +45,18 @@ public abstract class AbstractEquipment extends JSONEntity implements ViewableOb
 			imageUrl = null;
 		}
 		this.viewableImpl = new ViewableResourceBasedObject (name, imageUrl, description);
+		if (this.info == null)
+			this.info = new HashMap<String, String> ();
 	}
 
 	public AbstractEquipment (String name, String imageUrl, String description) {
 		this.viewableImpl = new ViewableResourceBasedObject (name, imageUrl, description);
+		this.info = new HashMap<String, String> ();
 	}
 
 	public AbstractEquipment (String name, String imageUrl, String description, Map<String, String> info) {
 		this(name, imageUrl, description);
+		this.info = new HashMap<String, String> ();
 		this.info.putAll (info);
 	}
 
