@@ -34,6 +34,7 @@ Given the class:
 			super ();
 		}
 
+		/** You must always have this constructor in JSONEntities. */
 		public Entity (JSONObject json) throws JSONMappingException {
 			super (json);
 		}
@@ -62,11 +63,18 @@ use for indentation.
 
 ## Rules
 
+### Must have constructor
+The classes that extend the `JSONEntity` must have a constructor with a single `JSONObject` type argument. Without this constructor it will be possible to serialize to a JSONObject but not _from_ a JSONObject.
+
 ### Transient fields
 Fields marked as transient are not (des)serialized. In the example `Entity` class the field  `transientValue` will not be kept.
 
 ### Maps
 For now all maps must have `String` as the key type.
+
+## Examples
+
+The test class `EquipmentTest` has a rather more complex data type being (un)serialized. It's a object that contains arrays of other JSONEntities, enumarations, and a special case of serialization (look at `AbstractEquipment` class) where customize the mechanism of (un)serialization.
 
 
 # License

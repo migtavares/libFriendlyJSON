@@ -15,6 +15,9 @@
  ***************************************************************************/
 package org.bitpipeline.lib.friendlyjson;
 
+import java.io.PrintWriter;
+import java.io.StringWriter;
+import java.lang.reflect.Array;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
@@ -45,6 +48,8 @@ import org.json.JSONObject;
  * <tt>toJSON ()</tt>. To create a instance of the object from JSON use the
  * constructor with <tt>JSONObject</tt> as parameter. */
 public abstract class JSONEntity {
+	private static final String MSG_MUST_HAVE_CONSTRUCTOR = "JSONEntity must implement a constructor with a JSONObject as argument.";
+
 	public JSONEntity () {
 	}
 
@@ -73,19 +78,55 @@ public abstract class JSONEntity {
 
 			Class<?> type = field.getType ();
 
-			try {
+			if (type.isArray ()) {
+				Class<?> componentClass = type.getComponentType ();
+				JSONArray jsonArray = null;
+				try {
+					jsonArray = json.getJSONArray (fieldName);
+				} catch (JSONException e) {
+					// no data for this field found.
+					continue;
+				}
+
+				int size = jsonArray.length ();
+
+				Object array = Array.newInstance (componentClass, size);
+				for (int i=0; i<size; i++) {
+					try {
+						Object item = fromJson (componentClass, jsonArray.get (i));
+						Array.set (array, i, item);
+					} catch (JSONException e) {
+						// item not found?
+					}
+				}
+				
+				try {
+					field.set (this, array);
+				} catch (Exception e) {
+					throw new JSONMappingException (e);
+				}
+			} else if (JSONEntity.class.isAssignableFrom (type)) {
+				try {
+					Object entity = readJSONEntity (type, json.getJSONObject (fieldName));
+					field.set (this, entity);
+				} catch (JSONException e) {
+					// keep going.. the json representation doesn't have value for this field.
+				} catch (Exception e) {
+					throw new JSONMappingException (e);
+				}
+			} else {
 				FieldSetter setter = JSON_READERS.get (type.getName ());
-				if (setter != null)
-					setter.setField (this, field, json, fieldName);
-				else {
+				if (setter != null) {
+					try {
+						setter.setField (this, field, json, fieldName);
+					} catch (JSONException e) {
+						// do nothing. We just didn't receive data for this field
+					} catch (Exception e) {
+						throw new JSONMappingException (e);
+					}
+				} else {
 					System.err.println ("No setter for " + field);
 				}
-			} catch (IllegalArgumentException e) {
-				throw new JSONMappingException (e);
-			} catch (IllegalAccessException e) {
-				throw new JSONMappingException (e);
-			} catch (JSONException e) {
-				throw new JSONMappingException (e);
 			}
 
 			if (!accessible)
@@ -93,8 +134,30 @@ public abstract class JSONEntity {
 		}
 	}
 
+	private Object readJSONEntity (Class<?> clazz, JSONObject json) throws JSONMappingException {
+		Class<?> c = clazz;
+
+		Constructor<?> constructor = null;
+		try {
+			constructor = c.getConstructor (JSONObject.class);
+		} catch (Exception e) {
+			throw new JSONMappingException (JSONEntity.MSG_MUST_HAVE_CONSTRUCTOR, e);
+		}
+
+		if (constructor == null)
+			return null;
+
+		Object entity = null;
+		try {
+			entity = constructor.newInstance (json);
+		} catch (Exception e) {
+			throw new JSONMappingException (e);
+		}
+		return entity;
+	}
+
 	static interface FieldSetter {
-		void setField (Object obj, Field field, JSONObject json, String jsonName) throws JSONException, IllegalArgumentException, IllegalAccessException;
+		void setField (Object obj, Field field, JSONObject json, String jsonName) throws Exception;
 	}
 
 	private static interface JSON2Obj {
@@ -108,17 +171,17 @@ public abstract class JSONEntity {
 
 	static {
 		JSON_READERS.put ("boolean", new FieldSetter () {
-			public void setField (Object obj, Field field, JSONObject json, String jsonName) throws JSONException, IllegalArgumentException, IllegalAccessException {
+			public void setField (Object obj, Field field, JSONObject json, String jsonName) throws Exception {
 				field.setBoolean (obj, json.getBoolean (jsonName));
 			}
 		});
 		JSON_READERS.put ("byte", new FieldSetter () {
-			public void setField (Object obj, Field field, JSONObject json, String jsonName) throws JSONException, IllegalArgumentException, IllegalAccessException {
+			public void setField (Object obj, Field field, JSONObject json, String jsonName) throws Exception {
 				field.setByte (obj, (byte) json.getInt (jsonName));
 			}
 		});
 		JSON_READERS.put ("char", new FieldSetter () {
-			public void setField (Object obj, Field field, JSONObject json, String jsonName) throws JSONException, IllegalArgumentException, IllegalAccessException {
+			public void setField (Object obj, Field field, JSONObject json, String jsonName) throws Exception {
 				String string = json.getString (jsonName);
 				if (string == null || string.length () == 0)
 					return;
@@ -127,39 +190,39 @@ public abstract class JSONEntity {
 			}
 		});
 		JSON_READERS.put ("short", new FieldSetter () {
-			public void setField (Object obj, Field field, JSONObject json, String jsonName) throws JSONException, IllegalArgumentException, IllegalAccessException {
+			public void setField (Object obj, Field field, JSONObject json, String jsonName) throws Exception {
 				field.setShort (obj, (short) json.getInt (jsonName));
 			}
 		});
 		JSON_READERS.put ("int", new FieldSetter () {
-			public void setField (Object obj, Field field, JSONObject json, String jsonName) throws JSONException, IllegalArgumentException, IllegalAccessException {
+			public void setField (Object obj, Field field, JSONObject json, String jsonName) throws Exception {
 				field.setInt (obj, json.getInt (jsonName));
 			}
 		});
 		JSON_READERS.put ("long", new FieldSetter () {
-			public void setField (Object obj, Field field, JSONObject json, String jsonName) throws JSONException, IllegalArgumentException, IllegalAccessException {
+			public void setField (Object obj, Field field, JSONObject json, String jsonName) throws Exception {
 				field.setLong (obj, json.getLong (jsonName));
 			}
 		});
 		JSON_READERS.put ("float", new FieldSetter () {
-			public void setField (Object obj, Field field, JSONObject json, String jsonName) throws JSONException, IllegalArgumentException, IllegalAccessException {
+			public void setField (Object obj, Field field, JSONObject json, String jsonName) throws Exception {
 				field.setFloat (obj, (float) json.getDouble (jsonName));
 			}
 		});
 		JSON_READERS.put ("double", new FieldSetter () {
-			public void setField (Object obj, Field field, JSONObject json, String jsonName) throws JSONException, IllegalArgumentException, IllegalAccessException {
+			public void setField (Object obj, Field field, JSONObject json, String jsonName) throws Exception {
 				field.setDouble (obj, json.getDouble (jsonName));
 			}
 		});
 
 		JSON_READERS.put (String.class.getName (), new FieldSetter () {
-			public void setField (Object obj, Field field, JSONObject json, String jsonName) throws JSONException, IllegalArgumentException, IllegalAccessException {
+			public void setField (Object obj, Field field, JSONObject json, String jsonName) throws Exception {
 				field.set (obj, json.getString (jsonName));
 			}
 		});
 
 		JSON_READERS.put (List.class.getName (), new FieldSetter () {
-			public void setField (Object obj, Field field, JSONObject json, String jsonName) throws JSONException, IllegalArgumentException, IllegalAccessException {
+			public void setField (Object obj, Field field, JSONObject json, String jsonName) throws Exception {
 				JSONArray jsonArray = json.getJSONArray (jsonName);
 				
 				ParameterizedType genericType = (ParameterizedType) field.getGenericType ();
@@ -175,7 +238,7 @@ public abstract class JSONEntity {
 		});
 
 		JSON_READERS.put (Map.class.getName (), new FieldSetter () {
-			public void setField (Object obj, Field field, JSONObject json, String jsonName) throws JSONException, IllegalArgumentException, IllegalAccessException {
+			public void setField (Object obj, Field field, JSONObject json, String jsonName) throws Exception {
 				JSONObject jsonMap = json.getJSONObject (jsonName);
 				if (jsonMap == null)
 					return;
@@ -243,43 +306,60 @@ public abstract class JSONEntity {
 		return json;
 	}
 
-	private static Object fromJson (Class<?> clazz, Object json) throws JSONException {
+	private static Object fromJson (Class<?> clazz, Object json) throws JSONMappingException {
 		if (json == null)
 			return null;
+		Object fromJson = null;
 		if (clazz != null && JSONEntity.class.isAssignableFrom (clazz)) {
-			try {
-				Constructor<?> constructor;
+			Constructor<?> constructor;
+
+			if ((clazz.getModifiers () & Modifier.STATIC) == 0) {
 				Class<?> enclosingClass = clazz.getEnclosingClass ();
-				if (enclosingClass != null) {
+				try {
 					constructor = clazz.getDeclaredConstructor (enclosingClass, JSONObject.class);
-					return constructor.newInstance (null, json); // NULL?? What should we actually use here?
-				} else {
-					constructor = clazz.getDeclaredConstructor (JSONObject.class);
-					return constructor.newInstance (json);
+					fromJson = constructor.newInstance (null, json); // NULL?? What should we actually use here?
+					return fromJson;
+				} catch (Exception e) {
+					throw new JSONMappingException (JSONEntity.MSG_MUST_HAVE_CONSTRUCTOR, e);
 				}
+			}
+			try {
+				constructor = clazz.getDeclaredConstructor (JSONObject.class);
+				fromJson = constructor.newInstance (json);
+				return fromJson;
 			} catch (Exception e) {
-				throw new JSONException (e);
+				throw new JSONMappingException (JSONEntity.MSG_MUST_HAVE_CONSTRUCTOR, e);
 			}
 		}
-		return JSONEntity.fromJson (json);
+
+		try {
+			fromJson = JSONEntity.fromJson (json);
+		} catch (JSONException e) {
+			e.printStackTrace();
+			throw new JSONMappingException (e);
+		}
+		return fromJson;
 	}
 
 	/* ---------------------- */
 
 	/** */
-	static private Object toJson (Object obj) throws JSONException {
+	static private Object toJson (Object obj) throws JSONMappingException {
+		if (obj == null)
+			return null;
 		Object json = obj;
+
 		if (obj instanceof JSONEntity) {
-			try {
-				json = ((JSONEntity)obj).toJson ();
-			} catch (JSONMappingException e) {
-				throw new JSONException (e);
-			}
+			json = ((JSONEntity)obj).toJson ();
 		} else if (obj instanceof Map) {
 			json = new JSONObject ();
 			for (Object mapKey : ((Map<?, ?>)obj).keySet ()) {
 				Object jsonValue = toJson (((Map<?, ?>)obj).get (mapKey));
-				((JSONObject)json).put (mapKey.toString (), jsonValue);
+				try {
+					((JSONObject)json).put (mapKey.toString (), jsonValue);
+				} catch (JSONException e) {
+					throw new JSONMappingException (e);
+				}
 			}
 
 		} else if (obj instanceof List) {
@@ -288,16 +368,21 @@ public abstract class JSONEntity {
 				Object jsonListItem = toJson(listItem);
 				((JSONArray)json).put (jsonListItem);
 			}
+		} else if (obj.getClass ().isArray ()) {
+			json = new JSONArray ();
+			Object[] array = (Object[]) obj;
+			for (Object item : array) {
+				Object jsonItem = toJson (item);
+				((JSONArray)json).put (jsonItem);
+			}
+		} else {
+			json = obj;
 		}
 		return json;
 	}
 
-	/** Serialize the object into a JSON object.
-	 * @throws JSONMappingException */
-	public JSONObject toJson () throws JSONMappingException {
-		JSONObject json = new JSONObject ();
-		for (Field field : this.getClass ().getDeclaredFields ()) {
-
+	public JSONObject fillWithClass (JSONObject json, Class<?> clazz) throws JSONMappingException {
+		for (Field field : clazz.getDeclaredFields ()) {
 			if ( (field.getModifiers () & Modifier.TRANSIENT) != 0) { // don't care about transient fields.
 				continue;
 			}
@@ -312,21 +397,33 @@ public abstract class JSONEntity {
 				field.setAccessible (true);
 
 			try {
-				Object jsonField = toJson (field.get (this));
+				Object value = field.get (this);
+				Object jsonField = toJson (value);
 				json.put (jsonName, jsonField);
-			} catch (IllegalAccessException e) {
-				throw new JSONMappingException (e);
-			} catch (JSONException e) {
+			} catch (Exception e) {
 				throw new JSONMappingException (e);
 			}
 
 			if (!accessible)
 				field.setAccessible (false);
 		}
-
+		
 		return json;
 	}
-	
+
+	/** Serialize the object into a JSON object.
+	 * @throws JSONMappingException */
+	public JSONObject toJson () throws JSONMappingException {
+		JSONObject json = new JSONObject ();
+		Class<?> clazz = this.getClass ();
+		do {
+			json = fillWithClass (json, clazz);
+			clazz = clazz.getSuperclass ();
+		} while (clazz != null && !clazz.isAssignableFrom (JSONEntity.class));
+		
+		return json;
+	}
+
 	/** 
 	 * @return <tt>null</tt> if there was a problem converting the object into a JSON representation,
 	 *         a String representing the object with a JSON syntax otherwise. */
@@ -341,10 +438,10 @@ public abstract class JSONEntity {
 	public String toString (int indent) {
 		try {
 			return toJson().toString (indent);
-		} catch (JSONMappingException e) {
-			return e.toString ();
-		} catch (JSONException e) {
-			return e.toString ();
-		}		
+		} catch (Exception e) {
+			StringWriter sw = new StringWriter ();
+			e.printStackTrace (new PrintWriter (sw));
+			return sw.toString ();
+		}
 	}
 }
