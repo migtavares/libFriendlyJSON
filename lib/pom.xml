@@ -25,6 +25,17 @@ limitations under the License.
 	<name>Friendly JSON library</name>
 	<version>1.0-SNAPSHOT</version>
 	<packaging>jar</packaging>
+	<description>
+		A layer on top of JSON in Java to make it easier to create
+		objects that enable a developer to easily create classes that
+		can be serialized to a JSON string and to instanciate objects
+		based on their JSON serialization.
+	</description>
+
+	<organization>
+		<name>BitPipeline</name>
+		<url>http://www.bitpipeline.eu</url>
+	</organization>
 
 	<developers>
 		<developer>
@@ -39,10 +50,24 @@ limitations under the License.
 		</developer>
 	</developers>
 
-	<organization>
-		<name>BitPipeline</name>
-		<url>http://www.bitpipeline.eu</url>
-	</organization>
+	<scm>
+		<url>https://github.com/migtavares/libFriendlyJSON</url>
+		<connection>scm:git:git://github.com/migtavares/libFriendlyJSON.git</connection>
+		<developerConnection>scm:git:git://git@github.com:migtavares/libFriendlyJSON.git</developerConnection>
+	</scm>
+
+	<issueManagement>
+		<system>GitHub Issues</system>
+		<url>https://github.com/migtavares/libFriendlyJSON/issues</url>
+	</issueManagement>
+
+	<licenses>
+		<license>
+			<name>Apache License Version 2.0</name>
+			<url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
+			<distribution>repo</distribution>
+		</license>
+	</licenses>
 
 	<properties>
 		<compileSource>1.6</compileSource>
@@ -107,12 +132,6 @@ limitations under the License.
 
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-javadoc-plugin</artifactId>
-				<version>2.8</version>
-			</plugin>
-
-			<plugin>
-				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-site-plugin</artifactId>
 				<version>3.0</version>
 				<configuration>
@@ -120,6 +139,29 @@ limitations under the License.
 				</configuration>
 			</plugin>
 
+			<plugin>
+				<groupId>com.github.github</groupId>
+				<artifactId>downloads-maven-plugin</artifactId>
+				<version>0.6</version>
+				<configuration>
+					<description>${project.version} release of ${project.name}</description>
+					<override>true</override>
+					<includeAttached>true</includeAttached>
+					<dryRun>true</dryRun>
+				</configuration>
+			</plugin>
+
 		</plugins>
 	</build>
+
+	<reporting>
+		<plugins>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-javadoc-plugin</artifactId>
+				<version>2.8.1</version>
+			</plugin>
+		</plugins>
+	</reporting>
+
 </project>
