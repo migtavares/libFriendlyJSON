@@ -1,3 +1,19 @@
+/**
+ * Copyright 2012 J. Miguel P. Tavares <mtavares@bitpipeline.eu>
+ *         BitPipeline
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ ***************************************************************************/
 package org.bitpipeline.lib.friendlyjson.complexdata;
 
 import java.util.Arrays;
@@ -21,10 +37,6 @@ public class EquipmentBoard extends AbstractEquipment {
 		private float maxSailArea;
 		private FinFittingType[] finFittings;
 
-		transient private int[] frontFins;
-		transient private int[] backFins;
-		transient private boolean dagger;
-
 		public BoardSpecs (JSONObject json) throws JSONMappingException {
 			super (json);
 		}
@@ -39,43 +51,6 @@ public class EquipmentBoard extends AbstractEquipment {
 			this.minSailArea = minSailArea;
 			this.maxSailArea = maxSailArea;
 			this.finFittings = finsFittingType;
-
-			int firstRealFin = 0;
-			if (finsFittingType[0] == FinFittingType.DaggerBoard) {
-				this.dagger = true;
-				firstRealFin = 1;
-			} else {
-				this.dagger = false;
-			}
-			int lastRealFin = finsFittingType.length - 1;
-
-			int numberOfRealFins = finsFittingType.length - firstRealFin;
-			switch (numberOfRealFins) {
-				case 0:
-					this.frontFins  = new int[0];
-					this.backFins  = new int[0];
-					break;
-				case 1:
-					this.frontFins = new int[] { firstRealFin };
-					this.backFins  = new int[0];
-					break;
-				case 2:
-					this.frontFins = new int[] { firstRealFin    , lastRealFin };
-					this.backFins  = new int[0];
-					break;
-				case 3:
-					this.frontFins = new int[] { firstRealFin    , lastRealFin };
-					this.backFins  = new int[] { firstRealFin + 1 };
-					break;
-				case 4:
-					this.frontFins = new int[] { firstRealFin     ,  lastRealFin };
-					this.backFins  = new int[] { firstRealFin + 1 , lastRealFin -1};
-					break;
-				default:
-					this.frontFins = null;
-					this.backFins = null;
-					break;
-			}
 		}
 
 		public String getName () {return this.name;}
@@ -86,21 +61,6 @@ public class EquipmentBoard extends AbstractEquipment {
 		public float getMaxSailArea () {return this.maxSailArea;}
 		public boolean isSailInRange (float area) { return this.minSailArea < area && area < this.maxSailArea;}
 		public FinFittingType[] getFinFittingType () {return this.finFittings;}
-		public boolean hasDagger () { return this.dagger; };
-		public int[] getFronFinPositions () { return this.frontFins; }
-		public int[] getBackFinPositions () { return this.backFins; }
-
-		public FinFittingType getFrontFinFittingType () {
-			if (this.frontFins != null && this.frontFins.length > 0)
-				return this.finFittings[this.frontFins[0]];
-			return null;
-		}
-
-		public FinFittingType getBackFinFittingType () {
-			if (this.backFins != null && this.backFins.length > 0)
-				return this.finFittings[this.backFins[0]];
-			return null;
-		}
 	}
 
 	private EquipmentCollection collection;
@@ -108,8 +68,6 @@ public class EquipmentBoard extends AbstractEquipment {
 	transient private Set<WindsurfClass> disciplineListCache = null;
 	private BoardSpecs[] specs;
 	transient private List<BoardSpecs> specsListCache = null;
-
-	private BoardSpecs selectedSpecs = null;
 
 	public EquipmentBoard (JSONObject obj) throws JSONMappingException {
 		super (obj);
@@ -136,32 +94,7 @@ public class EquipmentBoard extends AbstractEquipment {
 		return this.specsListCache;
 	}
 
-	public BoardSpecs getSelectedSpecs () {return this.selectedSpecs;}
-
 	public EquipmentCollection getCollection () {return this.collection;}
-
-	public void selectSpecs (int position) {
-		this.selectedSpecs = this.specs[position];
-	}
-
-	public EquipmentBoard.BoardSpecs selectSpecsCloserToVolume (float volume) {
-		if (this.specs.length == 0)
-			return null;
-
-		EquipmentBoard.BoardSpecs choice = null;
-		float diff = Float.MAX_VALUE;
-
-		for (EquipmentBoard.BoardSpecs spec : this.specs) {
-			float tmpDiff = Math.abs(volume - spec.getVolume ());
-			 if (tmpDiff < diff) {
-				 diff = tmpDiff;
-				 choice = spec;
-			 }
-		}
-		this.selectedSpecs = choice;
-
-		return this.selectedSpecs;
-	}
 
 	public Set<WindsurfClass> getWindsurfClasses () {
 		if (this.disciplineListCache == null) {
