@@ -31,7 +31,6 @@ import org.junit.Test;
 /**
  * @author mtavares */
 public class JSONEntityTest extends TestCase {
-
 	class Xpto extends JSONEntity {
 		String name;
 
@@ -209,5 +208,4 @@ public class JSONEntityTest extends TestCase {
 
 		assertEquals (orig.toString (), copy.toString ());
 	}
-
 }

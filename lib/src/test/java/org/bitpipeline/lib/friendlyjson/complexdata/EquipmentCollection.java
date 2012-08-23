@@ -31,11 +31,15 @@ public class EquipmentCollection extends AbstractEquipment {
 	
 	public EquipmentCollection (String name, String imageUrl, String description, EquipmentBrand brand, Map<String, String> info) {
 		super (name, imageUrl, description, info);
-		this.brand = brand;
+		init (brand);
 	}
 
 	public EquipmentCollection (String name, String imageUrl, String description, EquipmentBrand brand) {
 		super (name, imageUrl, description);
+		init (brand);
+	}
+
+	private void init (EquipmentBrand brand) {
 		this.brand = brand;
 	}
 

@@ -43,13 +43,14 @@ import org.json.JSONObject;
  *    <li>java primitives (boolean, byte, char, short, int, long, float and double)</li>
  *    <li>java.util.Map&lt;String, ?&gt;</li>
  *    <li>java.util.List&lt;?&gt;</li>
+ *    <li>other JSONEntities</li>
  * </ul>
  *
  * To convert the instances to JSON objects just call the method
  * <tt>toJSON ()</tt>. To create a instance of the object from JSON use the
  * constructor with <tt>JSONObject</tt> as parameter. */
 public abstract class JSONEntity {
-	private static final String MSG_MUST_HAVE_CONSTRUCTOR = "JSONEntity must implement a constructor with a JSONObject as argument.";
+	private static final String MSG_MUST_HAVE_CONSTRUCTOR = " must implement a constructor with a JSONObject as argument.";
 
 	public JSONEntity () {
 	}
@@ -173,9 +174,9 @@ public abstract class JSONEntity {
 	}
 
 	/** Read from the JSON into Java objects */
-	final protected static HashMap<String, FieldSetter> JSON_READERS = new HashMap<String, FieldSetter> ();
+	final private static HashMap<String, FieldSetter> JSON_READERS = new HashMap<String, FieldSetter> ();
 	/** Convert from JSON complex objects into Java Objects. */
-	final protected static HashMap<String, JSON2Obj> JSON_CONVERTERS = new HashMap<String, JSON2Obj> ();
+	final private static HashMap<String, JSON2Obj> JSON_CONVERTERS = new HashMap<String, JSON2Obj> ();
 
 	static {
 		JSON_READERS.put ("boolean", new FieldSetter () {
@@ -321,14 +322,14 @@ public abstract class JSONEntity {
 		if (clazz != null && JSONEntity.class.isAssignableFrom (clazz)) {
 			Constructor<?> constructor;
 
-			if ((clazz.getModifiers () & Modifier.STATIC) == 0) {
-				Class<?> enclosingClass = clazz.getEnclosingClass ();
+			Class<?> enclosingClass = clazz.getEnclosingClass ();
+			if (enclosingClass != null && (clazz.getModifiers () & Modifier.STATIC) == 0) {
 				try {
 					constructor = clazz.getDeclaredConstructor (enclosingClass, JSONObject.class);
 					fromJson = constructor.newInstance (null, json); // NULL?? What should we actually use here?
 					return fromJson;
 				} catch (Exception e) {
-					throw new JSONMappingException (JSONEntity.MSG_MUST_HAVE_CONSTRUCTOR, e);
+					throw new JSONMappingException (clazz.getName () + JSONEntity.MSG_MUST_HAVE_CONSTRUCTOR, e);
 				}
 			}
 			try {
@@ -336,7 +337,7 @@ public abstract class JSONEntity {
 				fromJson = constructor.newInstance (json);
 				return fromJson;
 			} catch (Exception e) {
-				throw new JSONMappingException (JSONEntity.MSG_MUST_HAVE_CONSTRUCTOR, e);
+				throw new JSONMappingException (clazz.getName () + JSONEntity.MSG_MUST_HAVE_CONSTRUCTOR, e);
 			}
 		}
 
@@ -345,6 +346,11 @@ public abstract class JSONEntity {
 		} catch (JSONException e) {
 			e.printStackTrace();
 			throw new JSONMappingException (e);
+		}
+		
+		if (clazz != null) {
+			if (!clazz.isAssignableFrom (fromJson.getClass ()))
+				throw new JSONMappingException ("Was expeting a " + clazz.getName () + " but received a " + fromJson.getClass ().getName () + "instead.");
 		}
 		return fromJson;
 	}
@@ -389,7 +395,7 @@ public abstract class JSONEntity {
 		return json;
 	}
 
-	public JSONObject fillWithClass (JSONObject json, Class<?> clazz) throws JSONMappingException {
+	private JSONObject fillWithClass (JSONObject json, Class<?> clazz) throws JSONMappingException {
 		for (Field field : clazz.getDeclaredFields ()) {
 			if ( (field.getModifiers () & Modifier.TRANSIENT) != 0) { // don't care about transient fields.
 				continue;
@@ -432,7 +438,7 @@ public abstract class JSONEntity {
 		return json;
 	}
 
-	/** 
+	/** Get a String representation of the object, using JSON data format.
 	 * @return <tt>null</tt> if there was a problem converting the object into a JSON representation,
 	 *         a String representing the object with a JSON syntax otherwise. */
 	public String toString () {
@@ -442,7 +448,12 @@ public abstract class JSONEntity {
 			return null;
 		}
 	}
-	
+
+	/** Get a String representation of the object, using JSON data format.
+	 * @param indent is the number of spaces to be used for indentation.
+	 * @return a String representing the object with a pretty formated JSON
+	 *	syntax unless there's a error, then the stack trace of the error
+	 *	is returned.*/
 	public String toString (int indent) {
 		try {
 			return toJson().toString (indent);

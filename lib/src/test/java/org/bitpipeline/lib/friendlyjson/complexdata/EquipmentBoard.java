@@ -63,11 +63,13 @@ public class EquipmentBoard extends AbstractEquipment {
 		public FinFittingType[] getFinFittingType () {return this.finFittings;}
 	}
 
+	
 	private EquipmentCollection collection;
 	private WindsurfClass[] disciplines;
 	transient private Set<WindsurfClass> disciplineListCache = null;
 	private BoardSpecs[] specs;
 	transient private List<BoardSpecs> specsListCache = null;
+
 
 	public EquipmentBoard (JSONObject obj) throws JSONMappingException {
 		super (obj);
