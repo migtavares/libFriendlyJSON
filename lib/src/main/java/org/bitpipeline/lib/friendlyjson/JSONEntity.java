@@ -23,6 +23,7 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.lang.reflect.ParameterizedType;
+import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -252,12 +253,27 @@ public abstract class JSONEntity {
 				if (jsonMap == null)
 					return;
 
+				ParameterizedType genericType = (ParameterizedType) field.getGenericType ();
+				Type[] actualTypeArguments = genericType.getActualTypeArguments ();
+				Type keyType = actualTypeArguments[0];
+				Type valueType = actualTypeArguments[1];
+				Class<?> keyClass = (Class<?>)actualTypeArguments[0];
+				Class<?> valueClass;
+				if (valueType instanceof ParameterizedType) {
+					valueClass = (Class<?>)((ParameterizedType)valueType).getRawType ();
+				} else {
+					valueClass = (Class<?>)actualTypeArguments[1];
+				}
+				
+				
 				HashMap<Object, Object> map = new HashMap <Object, Object> (jsonMap.length ());
 				Iterator<?> keys = jsonMap.keys ();
 				while (keys.hasNext ()) {
 					Object key = keys.next ();
 					Object jsonValue = jsonMap.get (key.toString ());
-					map.put (key, JSONEntity.fromJson (jsonValue));
+					map.put (
+						JSONEntity.fromJson (keyClass, key),
+						JSONEntity.fromJson (valueClass, jsonValue));
 				}
 				field.set (obj, map);
 			}

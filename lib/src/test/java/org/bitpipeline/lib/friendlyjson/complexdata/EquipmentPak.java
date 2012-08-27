@@ -1,7 +1,10 @@
 package org.bitpipeline.lib.friendlyjson.complexdata;
 
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.bitpipeline.lib.friendlyjson.JSONEntity;
 import org.bitpipeline.lib.friendlyjson.JSONMappingException;
@@ -11,7 +14,9 @@ import org.json.JSONObject;
 public class EquipmentPak extends JSONEntity {
 	private transient List<EquipmentBrand> brands;
 	private transient List<EquipmentCollection> collections;
+	
 	private List<EquipmentBoard> boards;
+	private Map<String, EquipmentBrand> brandMap;
 
 	public EquipmentPak (JSONObject json) throws JSONMappingException {
 		super (json);
@@ -28,6 +33,9 @@ public class EquipmentPak extends JSONEntity {
 	}
 
 	private void init () {
+		if (this.brandMap == null) {
+			this.brandMap = new HashMap<String, EquipmentBrand> ();
+		}
 		if (this.brands == null)
 			this.brands = new ArrayList<EquipmentBrand> ();
 		if (this.collections == null)
@@ -53,11 +61,16 @@ public class EquipmentPak extends JSONEntity {
 		return this.boards;
 	}
 
+	public Collection<EquipmentBrand> getMapBrands () {
+		return this.brandMap.values ();
+	}
+	
 	public void addBrand (EquipmentBrand brand) {
 		for (EquipmentBrand b : this.brands)
 			if (b.getName ().equals (brand.getName ()))
 				return;
 		this.brands.add (brand);
+		this.brandMap.put (brand.getName ().replaceAll ("\\s*", "").toLowerCase (), brand);
 	}
 
 	public void addCollection (EquipmentCollection coll) {
