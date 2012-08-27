@@ -257,13 +257,18 @@ public abstract class JSONEntity {
 				Type[] actualTypeArguments = genericType.getActualTypeArguments ();
 				Type keyType = actualTypeArguments[0];
 				Type valueType = actualTypeArguments[1];
-				Class<?> keyClass = (Class<?>)actualTypeArguments[0];
+				Class<?> keyClass;
+				if (keyType instanceof ParameterizedType)
+					keyClass = (Class<?>)((ParameterizedType)keyType).getRawType ();
+				else
+					keyClass = (Class<?>)actualTypeArguments[0];
+				
 				Class<?> valueClass;
-				if (valueType instanceof ParameterizedType) {
+				if (valueType instanceof ParameterizedType)
 					valueClass = (Class<?>)((ParameterizedType)valueType).getRawType ();
-				} else {
+				else
 					valueClass = (Class<?>)actualTypeArguments[1];
-				}
+				
 				
 				
 				HashMap<Object, Object> map = new HashMap <Object, Object> (jsonMap.length ());
