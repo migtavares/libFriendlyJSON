@@ -51,7 +51,7 @@ import org.json.JSONObject;
  * <tt>toJSON ()</tt>. To create a instance of the object from JSON use the
  * constructor with <tt>JSONObject</tt> as parameter. */
 public abstract class JSONEntity {
-	private static final String MSG_MUST_HAVE_CONSTRUCTOR = " must implement a constructor with a JSONObject as argument.";
+	private static final String MSG_MUST_HAVE_CONSTRUCTOR = " must implement a public constructor with a JSONObject as argument.";
 
 	public JSONEntity () {
 	}
@@ -105,8 +105,11 @@ public abstract class JSONEntity {
 					try {
 						Object item = fromJson (componentClass, jsonArray.get (i));
 						Array.set (array, i, item);
-					} catch (JSONException e) {
-						// item not found?
+					} catch (Exception e) {
+						System.err.println ("Invalid array component for class "
+							+ this.getClass ().getName ()
+							+ " field "
+							+ field.getName () + "::" + field.getType ().getName ());
 					}
 				}
 				
@@ -336,43 +339,68 @@ public abstract class JSONEntity {
 		return json;
 	}
 
+	@SuppressWarnings ({ "unchecked", "rawtypes" })
 	private static Object fromJson (Class<?> clazz, Object json) throws JSONMappingException {
 		if (json == null)
 			return null;
 		Object fromJson = null;
-		if (clazz != null && JSONEntity.class.isAssignableFrom (clazz)) {
-			Constructor<?> constructor;
-
-			Class<?> enclosingClass = clazz.getEnclosingClass ();
-			if (enclosingClass != null && (clazz.getModifiers () & Modifier.STATIC) == 0) {
+		if (clazz == null) {
+			try {
+				fromJson = JSONEntity.fromJson (json);
+			} catch (JSONException e) {
+				e.printStackTrace();
+				throw new JSONMappingException (e);
+			}
+		} else {
+			Constructor<?> constructor;;
+			if (JSONEntity.class.isAssignableFrom (clazz)) { // A JSON Entity.
+				Class<?> enclosingClass = clazz.getEnclosingClass ();
+				if (enclosingClass != null && (clazz.getModifiers () & Modifier.STATIC) == 0) { // it's a non static inner class
+					try {
+						constructor = clazz.getDeclaredConstructor (enclosingClass, JSONObject.class);
+					} catch (Exception e) {
+						throw new JSONMappingException (clazz.getName () + JSONEntity.MSG_MUST_HAVE_CONSTRUCTOR, e);
+					}
+	
+					try {
+						/* we actually don't know the enclosing object...
+						 * this will be a problem with inner classes that
+						 * reference the enclosing class instance at 
+						 * constructor time... although with json entities
+						 * that should not happen. */
+						fromJson = constructor.newInstance (null, json); 
+					} catch (Exception e) {
+						throw new JSONMappingException (e);
+					}
+				} else { // static inner class
+					try {
+						constructor = clazz.getDeclaredConstructor (JSONObject.class);
+					} catch (Exception e) {
+						throw new JSONMappingException (clazz.getName () + JSONEntity.MSG_MUST_HAVE_CONSTRUCTOR, e);
+					}
+		
+					try {
+						fromJson = constructor.newInstance (json);
+					} catch (Exception e) {
+						throw new JSONMappingException ("clazz = " + clazz.getName () + "; json = "  + json.toString (), e);
+					}
+				}
+			} else if (clazz.isEnum ()) {
 				try {
-					constructor = clazz.getDeclaredConstructor (enclosingClass, JSONObject.class);
-					fromJson = constructor.newInstance (null, json); // NULL?? What should we actually use here?
-					return fromJson;
+					fromJson = Enum.valueOf ((Class<Enum>) clazz, json.toString ());
 				} catch (Exception e) {
-					throw new JSONMappingException (clazz.getName () + JSONEntity.MSG_MUST_HAVE_CONSTRUCTOR, e);
+					fromJson = null;
+				}
+			} else {
+				try {
+					fromJson = JSONEntity.fromJson (json);
+				} catch (JSONException e) {
+					e.printStackTrace();
 				}
 			}
-			try {
-				constructor = clazz.getDeclaredConstructor (JSONObject.class);
-				fromJson = constructor.newInstance (json);
-				return fromJson;
-			} catch (Exception e) {
-				throw new JSONMappingException (clazz.getName () + JSONEntity.MSG_MUST_HAVE_CONSTRUCTOR, e);
-			}
 		}
-
-		try {
-			fromJson = JSONEntity.fromJson (json);
-		} catch (JSONException e) {
-			e.printStackTrace();
-			throw new JSONMappingException (e);
-		}
-		
-		if (clazz != null) {
-			if (!clazz.isAssignableFrom (fromJson.getClass ()))
-				throw new JSONMappingException ("Was expeting a " + clazz.getName () + " but received a " + fromJson.getClass ().getName () + "instead.");
-		}
+		if (clazz != null && !clazz.isAssignableFrom (fromJson.getClass ()))
+			throw new JSONMappingException ("Was expeting a " + clazz.getName () + " but received a " + fromJson.getClass ().getName () + " instead.");
 		return fromJson;
 	}
 
