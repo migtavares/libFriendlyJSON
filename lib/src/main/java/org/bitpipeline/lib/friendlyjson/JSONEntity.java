@@ -138,7 +138,23 @@ public abstract class JSONEntity {
 						throw new JSONMappingException (e);
 					}
 				} else {
-					System.err.println ("No setter for " + field);
+					Object jsonObj;
+					try {
+						jsonObj = json.get (fieldName);
+					} catch (Exception e) {
+						jsonObj = null;
+					}
+					if (jsonObj != null) {
+						Object value = fromJson (type, jsonObj);
+						try {
+							field.set (this, value);
+						} catch (Exception e) {
+							e.printStackTrace();
+						}
+					} else {
+						System.err.println ("No setter for " + field);
+					}
+					
 				}
 			}
 
