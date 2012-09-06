@@ -61,21 +61,27 @@ or, if you want a pretty print:
 where the integer parameter to the method `toString` is the number of spaces to
 use for indentation.
 
-## Rules
+## ProGuard
 
-### Must have constructor
+You must use this rules with proguard:
+	-keepattributes Signature
+	-keepclassmembers class * extends org.bitpipeline.lib.friendlyjson.JSONEntity {*;}
+
+# Rules
+
+## Must have constructor
 The classes that extend the `JSONEntity` must have a constructor with a single `JSONObject` type argument. Without this constructor it will be possible to serialize to a JSONObject but not _from_ a JSONObject.
 
-### Initialization of fields
+## Initialization of fields
 `JSONEntity` based classes _must_ not initialize their fields in their declaration. As far as I can see the subclass initialization takes place after the call to the `super` constructor and overides the values set by it.
 
-### Transient fields
+## Transient fields
 Fields marked as transient are not (des)serialized. In the example `Entity` class the field  `transientValue` will not be kept.
 
-### Maps
+## Maps
 For now all maps must have `String` as the key type.
 
-## Examples
+# Examples
 
 The test class `EquipmentTest` has a rather more complex data type being (un)serialized. It's a object that contains arrays of other JSONEntities, enumarations, and a special case of serialization (look at `AbstractEquipment` class) where customize the mechanism of (un)serialization.
 
