@@ -23,7 +23,7 @@ limitations under the License.
 	<groupId>org.bitpipeline.lib</groupId>
 	<artifactId>friendlyJSON</artifactId>
 	<name>Friendly JSON library</name>
-	<version>1.0-SNAPSHOT</version>
+	<version>1.0</version>
 	<packaging>jar</packaging>
 	<description>
 		A layer on top of JSON in Java to make it easier to create
